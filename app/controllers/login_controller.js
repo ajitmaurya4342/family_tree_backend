@@ -45,7 +45,7 @@ module.exports.getUserList = async function(req, res, next) {
 module.exports.addEditUsers = async function(req, res, next) {
     const reqbody ={...req.params,...req.body};
     const heirachy_id= reqbody.heirachy_id;
-    const checkFeild=["first_name","last_name","email","phone_number","gender","dob","heirachy_id"]
+    const checkFeild=["first_name","last_name","email","phone_number","gender","dob","heirachy_id","is_married"]
     const checkValidation=await CheckValidation(checkFeild,reqbody)
  
 
