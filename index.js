@@ -22,7 +22,6 @@ app.use(bodyParser.json());
 
 require("@/routes/")(app);
 
-
 const server = http.createServer(app);
 
 //At Every 6 Hour
