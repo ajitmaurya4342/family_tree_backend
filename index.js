@@ -17,6 +17,8 @@ const c = require("config");
 const { clearInterval } = require("timers");
 
 global.knexConnection = knex;
+global.__base = __dirname;
+
 
 app.use(bodyParser.json());
 

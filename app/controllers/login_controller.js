@@ -71,7 +71,7 @@ module.exports.addEditUsers = async function(req, res, next) {
             last_name:reqbody.last_name,
             email:reqbody.email,
             phone_number:reqbody.phone_number,
-            picture:reqbody.picture,
+            picture:reqbody.picture || null,
             gender:reqbody.gender,
             description:reqbody.description,
             extra_keys:reqbody.extra_keys?JSON.stringify(reqbody.extra_keys):null,
@@ -100,6 +100,124 @@ module.exports.addEditUsers = async function(req, res, next) {
         let user_details=await global.knexConnection("users").where({user_id})
         return res.send({message:message,status:true,Records:user_details})
     }
+}
+
+const deattachRelation =async function(user_id) {
+  let remove_from_parent_table=await global.knexConnection("user_relation").del().where({user_id})
+  let remove_link_from1=await global.knexConnection("users").where({husband_id:null}).where({husband_id:user_id})
+  let remove_link_from2=await global.knexConnection("users").where({wife_id:null}).where({wife_id:user_id})
+
+}
+
+module.exports.linkRelation=async function(req, res, next) {
+    
+    const reqbody ={...req.params,...req.body};
+    const heirachy_id= reqbody.heirachy_id;
+    if(!reqbody.user_id){
+     return res.send({status:false,message:"User ID Needed"})
+    } 
+    const getUserDetail=await global.knexConnection("users").where({user_id:reqbody.user_id})
+    if(getUserDetail.length==0){
+     return res.send({status:false,message:"User Not Found"})
+    }
+    const checkFeild=["user_id","heirachy_id"]
+
+    if(getUserDetail[0].gender=="Male"){
+        checkFeild=[...checkFeild,...["is_son_of"]]
+    }
+    
+    if(getUserDetail[0].gender=="Female"){
+        checkFeild=[...checkFeild,...["is_daughter_of"]]
+    }
+    const checkValidation=await CheckValidation(checkFeild,reqbody)
+    
+    if(!checkValidation.status){
+        return res.send(checkValidation)
+    }
+    let is_insert_in_relation=false
+
+    //For Male Validation
+    const checkValidatin=[]
+    if(getUserDetail[0].gender=="Male"){
+     if(reqbody.is_son_of=='Y'){
+        is_insert_in_relation=true
+        checkValidatin.push("parent_id") //Only Father Id
+      }else {
+        checkValidatin.push("wife_id")  //Wife should be only daughter of
+      }
+
+    }
+       
+    if(getUserDetail[0].gender=="Female"){
+        if(reqbody.is_daughter_of=='Y'){
+            is_insert_in_relation=true
+           checkValidatin.push("parent_id") //Only Father Id
+         }else{
+           checkValidatin.push("husband_id")  //Husbdand should be son of
+         }
+     }
+
+    const checkValidationNew=await CheckValidation(checkValidatin,reqbody)
+    
+    if(!checkValidationNew.status){
+        return res.send(checkValidationNew)
+    }
+
+    if(is_insert_in_relation){
+        let parentLevel=await global.knexConnection("users").where({user_id:reqbody.parent_id})
+        if(parentLevel.length==0){
+          return res.send({status:false,message:"No Parent Found"})
+        }
+        let obj={
+            user_id:reqbody.user_id,
+            parent_id:reqbody.parent_id,
+            created_at:momet().format("YYYY-MM-DD")
+        }
+        await deattachRelation(reqbody.user_id)
+
+        await  global.knexConnection("user_relation").insert(obj);
+        await  global.knexConnection("users").update({user_level:parentLevel[0].user_level+1}).where({"user_id":reqbody.user_id});
+    }else{
+        if(reqbody.wife_id){
+         let wifeExist=await global.knexConnection("users").where({user_id:reqbody.wife_id})
+        if(wifeExist.length==0){
+          return res.send({status:false,message:"No User Found for Selected User. Please contact to admin"})
+        } 
+        if(wifeExist[0].husband_id){
+            return res.send({status:false,message:"You cannot select this wife."})
+        }
+        await deattachRelation(reqbody.user_id)
+
+        await  global.knexConnection("users").update({husband_id:reqbody.user_id}).where({"user_id":reqbody.wife_id});
+        
+        }else{
+            let husbandExist=await global.knexConnection("users").where({user_id:reqbody.husband_id})
+            if(husbandExist.length==0){
+              return res.send({status:false,message:"No User Found for Selected User.Please contact to Admin"})
+            } 
+            if(wifeExist[0].wife_id && !reqbody.wife_id){
+                return res.send({status:false,message:"You cannot select this husband.Please contact to Admin"})
+            }
+            await deattachRelation(reqbody.user_id)
+
+            await  global.knexConnection("users").update({wife_id:reqbody.user_id}).where({"user_id":reqbody.husband_id});
+
+        }
+    }
+    return res.send({status:true,message:"Relation Linked Successfully"});
+
+}
+
+module.exports.deattachRelation=async function(req, res, next) {
+    const reqbody ={...req.params,...req.body};
+    const heirachy_id= reqbody.heirachy_id;
+    const checkFeild=["user_id","heirachy_id"]
+    const checkValidation=await CheckValidation(checkFeild,reqbody)
+    if(!checkValidation.status){
+        return res.send(checkValidation)
+    }
+    await deattachRelation(reqbody.user_id);
+    return res.send({status:true, message:"Dettached Successfully"})
 }
 
 
