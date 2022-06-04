@@ -21,6 +21,8 @@ global.__base = __dirname;
 
 
 app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
 
 require("@/routes/")(app);
 
