@@ -104,13 +104,12 @@ module.exports.addEditUsers = async function(req, res, next) {
 
 const deattachRelation =async function(user_id) {
   let remove_from_parent_table=await global.knexConnection("user_relation").del().where({user_id})
-  let remove_link_from1=await global.knexConnection("users").where({husband_id:null}).where({husband_id:user_id})
-  let remove_link_from2=await global.knexConnection("users").where({wife_id:null}).where({wife_id:user_id})
+  let remove_link_from1=await global.knexConnection("users").update({husband_id:null}).where({husband_id:user_id})
+  let remove_link_from2=await global.knexConnection("users").update({wife_id:null}).where({wife_id:user_id})
 
 }
 
 module.exports.linkRelation=async function(req, res, next) {
-    
     const reqbody ={...req.params,...req.body};
     const heirachy_id= reqbody.heirachy_id;
     if(!reqbody.user_id){
@@ -123,11 +122,13 @@ module.exports.linkRelation=async function(req, res, next) {
     const checkFeild=["user_id","heirachy_id"]
 
     if(getUserDetail[0].gender=="Male"){
-        checkFeild=[...checkFeild,...["is_son_of"]]
+        checkFeild.push("is_son_of")
     }
+
+    console.log(checkFeild)
     
     if(getUserDetail[0].gender=="Female"){
-        checkFeild=[...checkFeild,...["is_daughter_of"]]
+        checkFeild.push("is_daughter_of")
     }
     const checkValidation=await CheckValidation(checkFeild,reqbody)
     
@@ -171,7 +172,7 @@ module.exports.linkRelation=async function(req, res, next) {
         let obj={
             user_id:reqbody.user_id,
             parent_id:reqbody.parent_id,
-            created_at:momet().format("YYYY-MM-DD")
+            created_at:moment().format("YYYY-MM-DD")
         }
         await deattachRelation(reqbody.user_id)
 
@@ -183,8 +184,8 @@ module.exports.linkRelation=async function(req, res, next) {
         if(wifeExist.length==0){
           return res.send({status:false,message:"No User Found for Selected User. Please contact to admin"})
         } 
-        if(wifeExist[0].husband_id){
-            return res.send({status:false,message:"You cannot select this wife."})
+        if(wifeExist[0].husband_id  && reqbody.user_id!=wifeExist[0].husband_id){
+            return res.send({status:false,message:"You cannot select this wife.Please contact to Admin"})
         }
         await deattachRelation(reqbody.user_id)
 
@@ -195,7 +196,7 @@ module.exports.linkRelation=async function(req, res, next) {
             if(husbandExist.length==0){
               return res.send({status:false,message:"No User Found for Selected User.Please contact to Admin"})
             } 
-            if(wifeExist[0].wife_id && !reqbody.wife_id){
+            if(husbandExist[0].wife_id && reqbody.user_id!=husbandExist[0].wife_id){
                 return res.send({status:false,message:"You cannot select this husband.Please contact to Admin"})
             }
             await deattachRelation(reqbody.user_id)
