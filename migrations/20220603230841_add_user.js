@@ -57,7 +57,6 @@ exports.up = async function (knex) {
             first_name:"Mrs.",
             last_name:"Maurya",
             email:"ajitmaurya3216@gmail.com",
-            user_level:1,
             is_admin:"Y",
             is_married:"Y",
             gender:"Female",

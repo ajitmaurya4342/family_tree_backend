@@ -4,7 +4,7 @@ const pagination = require("@/lib/pagination").pagination;
 const moment =require("moment");
 const { offset } = require("../../config/database");
 // const cheerio = require('cherio')
-
+var _ = require('lodash');
 module.exports.loginUser = async function(req, res, next) {
     const reqbody =req.body;
     const checkFeild=["user_name","password"]
@@ -104,8 +104,9 @@ module.exports.addEditUsers = async function(req, res, next) {
 
 const deattachRelation =async function(user_id) {
   let remove_from_parent_table=await global.knexConnection("user_relation").del().where({user_id})
-  let remove_link_from1=await global.knexConnection("users").update({husband_id:null}).where({husband_id:user_id})
-  let remove_link_from2=await global.knexConnection("users").update({wife_id:null}).where({wife_id:user_id})
+  let remove_link_from3=await global.knexConnection("users").update({user_level:null}).where({user_id:user_id})
+  let remove_link_from1=await global.knexConnection("users").update({husband_id:null,user_level:null}).where({husband_id:user_id})
+  let remove_link_from2=await global.knexConnection("users").update({wife_id:null,user_level:null}).where({wife_id:user_id})
 
 }
 
@@ -230,7 +231,81 @@ module.exports.getHeirachyFamily=async function(req, res, next) {
     if(!checkValidation.status){
         return res.send(checkValidation)
     }
-    return res.send({status:true, message:"Heirachhy Successfully",Records:[]})
+    let users=await global.knexConnection("users")
+    .select(global.knexConnection.raw(`users.*,user_relation.parent_id,user_parent.user_level as parent_level, 
+    user_wife_details.first_name as w_first_name, user_wife_details.last_name as w_last_name,user_wife_details.picture as w_picture,
+    user_husband_details.first_name as h_first_name, user_husband_details.last_name as h_last_name,user_husband_details.picture as h_picture`))
+    .leftJoin("user_relation","user_relation.user_id","users.user_id")
+    .leftJoin("users as user_parent","user_relation.parent_id","user_parent.user_id")
+    .leftJoin("users as user_wife_details","user_wife_details.user_id","users.wife_id")
+    .leftJoin("users as user_husband_details","user_husband_details.user_id","users.husband_id").orderBy("users.user_level")
+
+    const Only_USER_WITH_LEVEL=users.filter(z=>{
+        return (z.user_level && z.parent_level) || z.user_level==1;
+    })
+    
+    let heirachy_tree=[]
+   
+    Only_USER_WITH_LEVEL.map(z=>{
+       let secondPerson={
+            name: `Mrs. ${z.last_name}`,
+          };
+        if(z.w_last_name){
+            secondPerson={
+                name: `${z.w_first_name} ${z.w_last_name}`,
+              };
+              if(z.w_picture){
+                secondPerson["image"]=z.w_picture
+              }
+        }else if(z.h_last_name){
+            secondPerson={
+                name: `${z.h_first_name} ${z.h_last_name}`,
+            };
+            if(z.h_picture){
+                secondPerson["image"]=z.h_picture
+              }
+        }
+     
+        let obj={
+            user_id:z.user_id,
+            parent_id:z.parent_id,
+            firstPerson: {
+                  name: `${z.first_name}${z.last_name}`,
+                 
+             },
+              secondPerson: secondPerson
+       
+        }
+
+        if(z.is_married=='N'){
+          delete obj["secondPerson"]
+        }
+        if(z.picture){
+            obj.firstPerson["image"]=z.picture
+        }
+        heirachy_tree.push(obj)
+    })
+
+
+
+    const hierarchy = (data) => {
+        const tree = [];
+        const childOf = {};
+        data.forEach((item) => {
+            const { user_id ,parent_id} = item;
+            childOf[user_id] = childOf[user_id] || [];
+            item.children = childOf[user_id];
+           
+
+            parent_id ? (childOf[parent_id] = childOf[parent_id] || []).push(item) : tree.push(item);
+        });
+        return tree;
+    };
+    
+    // print
+    let FInalHeirachy=hierarchy(heirachy_tree, { idKey: 'user_id', parentKey: 'parent_id' });
+
+    return res.send({status:true, message:"Heirachhy Successfully",Only_USER_WITH_LEVEL,Records:FInalHeirachy})
 }
 
 
