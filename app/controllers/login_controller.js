@@ -222,5 +222,16 @@ module.exports.deattachRelation=async function(req, res, next) {
 }
 
 
+module.exports.getHeirachyFamily=async function(req, res, next) {
+    const reqbody ={...req.params,...req.body};
+    const heirachy_id= reqbody.heirachy_id;
+    const checkFeild=["heirachy_id"]
+    const checkValidation=await CheckValidation(checkFeild,reqbody)
+    if(!checkValidation.status){
+        return res.send(checkValidation)
+    }
+    return res.send({status:true, message:"Heirachhy Successfully",Records:[]})
+}
+
 
 
