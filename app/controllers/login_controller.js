@@ -33,8 +33,57 @@ module.exports.getUserList = async function(req, res, next) {
     if(!checkValidation.status){
         return res.send(checkValidation)
     }
-    const checkUserExist=await global.knexConnection("users").where({"user_is_active":"Y",heirachy_id:heirachy_id}).where("user_level",">",0)
+    let checkUserExist=await global.knexConnection("users")
+    .select(global.knexConnection.raw(`users.*,user_relation.parent_id,user_parent.user_level as parent_level, 
+    user_wife_details.first_name as w_first_name, user_wife_details.last_name as w_last_name,user_wife_details.picture as w_picture,
+    user_husband_details.first_name as h_first_name, user_husband_details.last_name as h_last_name,user_husband_details.picture as h_picture`))
+    .leftJoin("user_relation","user_relation.user_id","users.user_id")
+    .leftJoin("users as user_parent","user_relation.parent_id","user_parent.user_id")
+    .leftJoin("users as user_wife_details","user_wife_details.user_id","users.wife_id")
+    .leftJoin("users as user_husband_details","user_husband_details.user_id","users.husband_id").where({"users.heirachy_id":heirachy_id}).orderBy("user_id","DESC")
     if(checkUserExist.length>0){
+        let tempUserArray=[...checkUserExist]
+        checkUserExist.map(z=>{
+         z["relation"]="";
+         z["relation_linked"]=true;
+         z["full_name"]=`${z.first_name} ${z.last_name}`;
+         z["dob"]=z.dob?moment(z.dob).format("DD, MMM YYYY"):"Not Mentioned";
+         console.log(z.is_son_of,z.user_id)
+         if(z.user_level==1){
+           z["relation"]=`Root of Family`
+         }else if(z.is_son_of=='Y' ||  z.is_daughter_of=='Y'){
+             console.log("checjj")
+         let parentDetail=tempUserArray.filter(_z=>{
+             return _z.user_id==z.parent_id
+         })
+         if(parentDetail.length>0){
+             let message=z.is_daughter_of=='Y'?`Daughter of Mr.`:`Son of Mr.`
+             z["relation"]=`${message}${parentDetail[0].first_name} ${parentDetail[0].last_name} `
+          }
+        
+         }else if(z.gender=='Female'){
+            let husbandFind=tempUserArray.filter(_z=>{
+                return _z.wife_id==z.user_id
+            })
+            if(husbandFind.length>0){
+                let message=`Wife of Mr.`
+                z["relation"]=`${message}${husbandFind[0].first_name} ${husbandFind[0].last_name} `
+             }
+         }else if(z.gender=='Male'){
+            let wifeFind=tempUserArray.filter(_z=>{
+                return _z.husband_id==z.user_id
+            })
+            if(wifeFind.length>0){
+                let message=`Husband of Mrs.`
+                z["relation"]=`${message}${wifeFind[0].first_name} ${wifeFind[0].last_name} `
+             }
+         }
+         if(!z.relation){
+            z.relation="Relation Linked Pending"
+            z.relation_linked=false
+         }
+        })
+
         return res.send({message:"Login Successfully",status:true,Records:checkUserExist})
     }else{
         return res.send({message:"Invalid Credential User",status:false})
