@@ -40,8 +40,8 @@ exports.up = async function (knex) {
         },
         {
            heirachy_id:1,
-           first_name:"Ajit",
-           last_name:"Maurya",
+           first_name:"Mr. ",
+           last_name:"Shroff",
            email:"ajitmaurya3216@gmail.com",
            user_level:1,
            is_admin:"Y",
@@ -55,7 +55,7 @@ exports.up = async function (knex) {
          {
             heirachy_id:1,
             first_name:"Mrs.",
-            last_name:"Maurya",
+            last_name:"Shroff",
             email:"ajitmaurya3216@gmail.com",
             is_admin:"Y",
             is_married:"Y",

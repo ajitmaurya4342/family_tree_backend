@@ -47,6 +47,8 @@ module.exports.getUserList = async function(req, res, next) {
          z["relation"]="";
          z["relation_linked"]=true;
          z["full_name"]=`${z.first_name} ${z.last_name}`;
+         z["label"]=`${z.first_name} ${z.last_name}`;
+         z["value"]=`${z.user_id}`;
          z["dob"]=z.dob?moment(z.dob).format("DD, MMM YYYY"):"Not Mentioned";
          console.log(z.is_son_of,z.user_id)
          if(z.user_level==1){
@@ -224,10 +226,19 @@ module.exports.linkRelation=async function(req, res, next) {
             parent_id:reqbody.parent_id,
             created_at:moment().format("YYYY-MM-DD")
         }
+        let relation_obj={}
+        if(reqbody.is_daughter_of){
+            relation_obj["is_daughter_of"]='Y'
+            relation_obj["is_son_of"]='N'
+
+        }else{
+            relation_obj["is_son_of"]='Y'
+            relation_obj["is_daughter_of"]='N'
+        }
         await deattachRelation(reqbody.user_id)
 
         await  global.knexConnection("user_relation").insert(obj);
-        await  global.knexConnection("users").update({user_level:parentLevel[0].user_level+1}).where({"user_id":reqbody.user_id});
+        await  global.knexConnection("users").update({user_level:parentLevel[0].user_level+1,...relation_obj}).where({"user_id":reqbody.user_id});
     }else{
         if(reqbody.wife_id){
          let wifeExist=await global.knexConnection("users").where({user_id:reqbody.wife_id})
