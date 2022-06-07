@@ -333,7 +333,8 @@ module.exports.getHeirachyFamily=async function(req, res, next) {
                   name: `${z.first_name}${z.last_name}`,
                  
              },
-              secondPerson: secondPerson
+              secondPerson: secondPerson,
+              ...z
        
         }
 
@@ -346,8 +347,6 @@ module.exports.getHeirachyFamily=async function(req, res, next) {
         heirachy_tree.push(obj)
     })
 
-
-
     const hierarchy = (data) => {
         const tree = [];
         const childOf = {};
@@ -355,8 +354,7 @@ module.exports.getHeirachyFamily=async function(req, res, next) {
             const { user_id ,parent_id} = item;
             childOf[user_id] = childOf[user_id] || [];
             item.children = childOf[user_id];
-           
-
+            
             parent_id ? (childOf[parent_id] = childOf[parent_id] || []).push(item) : tree.push(item);
         });
         return tree;
