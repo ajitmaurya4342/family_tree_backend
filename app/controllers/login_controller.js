@@ -5,6 +5,7 @@ const moment =require("moment");
 const { offset } = require("../../config/database");
 // const cheerio = require('cherio')
 var _ = require('lodash');
+let baseurl=`http://localhost:5000`
 module.exports.loginUser = async function(req, res, next) {
     const reqbody =req.body;
     const checkFeild=["user_name","password"]
@@ -50,6 +51,7 @@ module.exports.getUserList = async function(req, res, next) {
          z["label"]=`${z.first_name} ${z.last_name}`;
          z["value"]=`${z.user_id}`;
          z["dob"]=z.dob?moment(z.dob).format("DD, MMM YYYY"):"Not Mentioned";
+         z["dod"]=z.dod?moment(z.dod).format("DD, MMM YYYY"):"Not Mentioned";
          console.log(z.is_son_of,z.user_id)
          if(z.user_level==1){
            z["relation"]=`Root of Family`
@@ -123,6 +125,7 @@ module.exports.addEditUsers = async function(req, res, next) {
             description:reqbody.description,
             extra_keys:reqbody.extra_keys?JSON.stringify(reqbody.extra_keys):null,
             dob:reqbody.dob?moment(reqbody.dob).format("YYYY-MM-DD"):null,
+            dod:reqbody.dod?moment(reqbody.dod).format("YYYY-MM-DD"):null,
             is_married:reqbody.is_married,
             is_admin:"N",
             password:null,
@@ -144,8 +147,7 @@ module.exports.addEditUsers = async function(req, res, next) {
               message=  "Updated Successfully"
 
         }
-
-
+         
 
             if(checkUserExist.length>0){
                 if(checkUserExist[0].is_married!=reqbody.is_married){
@@ -158,7 +160,7 @@ module.exports.addEditUsers = async function(req, res, next) {
                     }else{
                         delobj["user_id"]=checkUserExist[0].husband_id
                     } 
-                    let update_user=await global.knexConnection("users").update(update_user_wife_or_husband).where(checkUserExist[0].user_id)
+                    let update_user=await global.knexConnection("users").update(update_user_wife_or_husband).where({user_id:checkUserExist[0].user_id})
                   let delete_user=await global.knexConnection("users").del().where(delobj)
                 }
                 
@@ -169,18 +171,22 @@ module.exports.addEditUsers = async function(req, res, next) {
                         user_relation_change["is_son_of"]="N"
                         user_relation_change["is_daughter_of"]="Y"
                         whereCon["user_id"]=checkUserExist[0].wife_id
+                        user_relation_change["husband_id"]=checkUserExist[0].wife_id
+
                     }else{
                         user_relation_change["is_son_of"]="Y"
                         user_relation_change["is_daughter_of"]="N"
+                        user_relation_change["wife_id"]=checkUserExist[0].husband_id
                         whereCon["user_id"]=checkUserExist[0].husband_id
                     }
-                    let update_user=await global.knexConnection("users").update(user_relation_change).where(checkUserExist[0].user_id)
+                    console.log(user_relation_change,whereCon)
+                    let update_user=await global.knexConnection("users").update(user_relation_change).where({user_id:checkUserExist[0].user_id})
 
                    let delete_user=await global.knexConnection("users").update({ gender:reqbody.gender=='Male'?'Female':"Male"}).where(whereCon)
                 }
             }   
             
-            if(reqbody.is_married=='Y'){
+            if(reqbody.is_married=='Y' && (checkUserExist.length==0 || (!checkUserExist[0].wife_id && !checkUserExist[0].husband_id))){
                 let objMarried= {
                     first_name:reqbody.gender=='Male'?'Mrs. ':"Mr. ",
                     last_name:reqbody.last_name,
@@ -201,8 +207,8 @@ module.exports.addEditUsers = async function(req, res, next) {
                 }
                 let user_details=await global.knexConnection("users").update(obj_update).where({user_id})
                 }
-            let user_details=await global.knexConnection("users").where({user_id})
-            return res.send({message:message,status:true,Records:user_details})
+                let user_details=await global.knexConnection("users").where({user_id})
+                return res.send({message:message,status:true,Records:user_details})
     }
 }
 
@@ -353,23 +359,24 @@ module.exports.getHeirachyFamily=async function(req, res, next) {
     .leftJoin("users as user_wife_details","user_wife_details.user_id","users.wife_id")
     .leftJoin("users as user_husband_details","user_husband_details.user_id","users.husband_id").orderBy("users.user_level")
 
-    const Only_USER_WITH_LEVEL=users.filter(z=>{
+    let Only_USER_WITH_LEVEL=users.filter(z=>{
         return (z.user_level && z.parent_level) || z.user_level==1;
     })
     
     let heirachy_tree=[]
    
     Only_USER_WITH_LEVEL.map(z=>{
-
-    let checkChildrenExist=users.filter(_u=>{
-        return _u.parent_id==z.user_id
-    })
+        z["dob"]=z.dob?moment(z.dob).format("YYYY-MM-DD"):"";
+        z["dod"]=z.dod?moment(z.dod).format("YYYY-MM-DD"):"";
+        let checkChildrenExist=users.filter(_u=>{
+            return _u.parent_id==z.user_id
+        })
        let secondPerson={
             name: `Mrs. ${z.last_name}`,
             is_son_or_daugter:false,
             user_detail:{...z},
               is_update_available:z.user_id>3,
-              checkChildrenExist:checkChildrenExist.length,
+              checkChildrenExist:checkChildrenExist.length>0,
               user_id:z.user_id
           };
 
@@ -385,7 +392,7 @@ module.exports.getHeirachyFamily=async function(req, res, next) {
                 secondPerson["user_detail"]=wife_detail[0]
              }
               if(z.w_picture){
-                secondPerson["image"]=z.w_picture
+                secondPerson["image"]=baseurl+z.w_picture
               }
         }else if(z.h_last_name){
             secondPerson["name"]= `${z.h_first_name} ${z.h_last_name}`
@@ -398,15 +405,16 @@ module.exports.getHeirachyFamily=async function(req, res, next) {
                 secondPerson["user_detail"]=husband_detail[0]
              }
             if(z.h_picture){
-                secondPerson["image"]=z.h_picture
+                secondPerson["image"]=baseurl+z.h_picture
               }
         }
      
         let obj={
             user_id:z.user_id,
+            user_level:z.user_level,
             parent_id:z.parent_id,
             firstPerson: {
-                  name: `${z.first_name}${z.last_name}`,
+                  name: `${z.first_name} ${z.last_name}`,
                   is_son_or_daugter:true,
                   user_detail:{...z},
                   is_update_available:z.user_id>3,
@@ -423,7 +431,7 @@ module.exports.getHeirachyFamily=async function(req, res, next) {
           delete obj["secondPerson"]
         }
         if(z.picture){
-            obj.firstPerson["image"]=z.picture
+            obj.firstPerson["image"]=baseurl+z.picture
         }
         heirachy_tree.push(obj)
     })
