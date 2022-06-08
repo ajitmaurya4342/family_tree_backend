@@ -120,7 +120,7 @@ module.exports.addEditUsers = async function(req, res, next) {
             last_name:reqbody.last_name,
             email:reqbody.email,
             phone_number:reqbody.phone_number,
-            picture:reqbody.picture || "/user-profile.jpg",
+        picture:reqbody.picture || "/user-profile.png",
             gender:reqbody.gender,
             description:reqbody.description,
             extra_keys:reqbody.extra_keys?JSON.stringify(reqbody.extra_keys):null,
