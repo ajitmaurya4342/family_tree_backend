@@ -120,7 +120,7 @@ module.exports.addEditUsers = async function(req, res, next) {
             last_name:reqbody.last_name,
             email:reqbody.email,
             phone_number:reqbody.phone_number,
-            picture:reqbody.picture || null,
+            picture:reqbody.picture || "/user-profile.jpg",
             gender:reqbody.gender,
             description:reqbody.description,
             extra_keys:reqbody.extra_keys?JSON.stringify(reqbody.extra_keys):null,
@@ -408,6 +408,7 @@ module.exports.getHeirachyFamily=async function(req, res, next) {
                 secondPerson["image"]=baseurl+z.h_picture
               }
         }
+        
      
         let obj={
             user_id:z.user_id,
@@ -430,6 +431,7 @@ module.exports.getHeirachyFamily=async function(req, res, next) {
         if(z.is_married=='N'){
           delete obj["secondPerson"]
         }
+        
         if(z.picture){
             obj.firstPerson["image"]=baseurl+z.picture
         }
