@@ -11,6 +11,7 @@ exports.up = async function (knex) {
         table.string("description"); 
         table.string("extra_keys"); 
         table.date("dob");
+        table.date("dod");
         table.integer("wife_id")
         table.integer("heirachy_id")
         table.integer("husband_id")

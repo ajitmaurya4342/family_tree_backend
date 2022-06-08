@@ -194,6 +194,8 @@ module.exports.addEditUsers = async function(req, res, next) {
                 let obj_update={}
                 if(reqbody.gender=='Male'){
                     obj_update["wife_id"]=insert_married[0]
+                    
+                    
                 }else{
                     obj_update["husband_id"]=insert_married[0]
                 }
@@ -370,16 +372,31 @@ module.exports.getHeirachyFamily=async function(req, res, next) {
               checkChildrenExist:checkChildrenExist.length,
               user_id:z.user_id
           };
+
         if(z.w_last_name){
             secondPerson["name"]= `${z.w_first_name} ${z.w_last_name}`
             secondPerson["user_id"]= `${z.wife_id}`
+            let wife_detail=users.filter(_u=>{
+                return _u.user_id==z.wife_id
+            })
+            if(wife_detail.length>0){
+                wife_detail[0]["relation_of"]= `${z.first_name} ${z.last_name}`
 
+                secondPerson["user_detail"]=wife_detail[0]
+             }
               if(z.w_picture){
                 secondPerson["image"]=z.w_picture
               }
         }else if(z.h_last_name){
             secondPerson["name"]= `${z.h_first_name} ${z.h_last_name}`
             secondPerson["user_id"]= `${z.husband_id}`
+            let husband_detail=users.filter(_u=>{
+                return _u.user_id==z.husband_id
+            })
+            if(husband_detail.length>0){
+                husband_detail[0]["relation_of"]= `${z.first_name} ${z.last_name}`
+                secondPerson["user_detail"]=husband_detail[0]
+             }
             if(z.h_picture){
                 secondPerson["image"]=z.h_picture
               }
