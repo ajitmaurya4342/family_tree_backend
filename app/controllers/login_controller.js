@@ -193,8 +193,12 @@ module.exports.addEditUsers = async function(req, res, next) {
                     gender:reqbody.gender=='Male'?'Female':"Male",
                     dob:null,
                     is_married:reqbody.is_married,
+                
                     is_admin:"N",
                     heirachy_id:heirachy_id
+                }
+                if(checkUserExist.length==0){
+                    objMarried["picture"]=  "/user-profile.png";
                 }
                 let insert_married=await global.knexConnection("users").insert(objMarried);
                 let obj_update={}
