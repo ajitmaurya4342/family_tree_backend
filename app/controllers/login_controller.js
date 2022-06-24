@@ -120,7 +120,8 @@ module.exports.addEditUsers = async function(req, res, next) {
             last_name:reqbody.last_name,
             email:reqbody.email,
             phone_number:reqbody.phone_number,
-        picture:reqbody.picture || "/user-profile.png",
+           picture:reqbody.picture || "/user-profile.png",
+            order_child:reqbody.order_child || 0,
             gender:reqbody.gender,
             description:reqbody.description,
             extra_keys:reqbody.extra_keys?JSON.stringify(reqbody.extra_keys):null,
@@ -418,6 +419,8 @@ module.exports.getHeirachyFamily=async function(req, res, next) {
             user_id:z.user_id,
             user_level:z.user_level,
             parent_id:z.parent_id,
+            order_child:z.order_child,
+            sorting_order_child:z.order_child==0?1000:z.order_child,
             firstPerson: {
                   name: `${z.first_name} ${z.last_name}`,
                   is_son_or_daugter:true,
