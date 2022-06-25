@@ -465,4 +465,17 @@ module.exports.getHeirachyFamily=async function(req, res, next) {
 }
 
 
+module.exports.getMusic=async function(req, res, next) {
+
+    let music1=`${baseurl}/AUD-20220620-WA0065.mp3`
+    let music2=`${baseurl}/videoplayback_320kbps.mp3`
+
+    let musicArray=[music1,music2]
+    var PlayMusic = musicArray[Math.floor(Math.random()*musicArray.length)];
+
+   
+   return res.send({status:true,musicArray,playMusic:PlayMusic})
+}
+
+
 
